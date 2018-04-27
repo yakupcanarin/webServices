@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Web;
 using System.Web.Services;
@@ -17,10 +18,8 @@ namespace webApplication
     public class DBEntegration : System.Web.Services.WebService
     {
 
-        [WebMethod]
-        public string HelloWorld()
-        {
-            return "Hello World";
-        }
+        //[WebMethod]
+        
+        
     }
 }
