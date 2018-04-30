@@ -144,16 +144,47 @@ namespace webApplication
         }
 
         [WebMethod]
-        public void ConvertToPDF(string excelLocation, string pdfLocation)
+        public byte[] ConvertToPDF(byte[] excel)
         {
-            
+            var excelDosya = @"C:\Excel";
+            var pdfDosya = @"C:\PDF";
+            Random rnd = new Random();
+            int randomSayi = rnd.Next(111111);
+            string dosyaPathExcel = excelDosya + @"\" + randomSayi + ".xlsx";
+            string dosyapathPdf = pdfDosya + @"\" + randomSayi + ".pdf";
+            File.WriteAllBytes(dosyaPathExcel, excel);
             Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
             app.Visible = false;
-            Microsoft.Office.Interop.Excel.Workbook wkb = app.Workbooks.Open(excelLocation,ReadOnly:true);
-            wkb.ExportAsFixedFormat(Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF, pdfLocation);
-
+            Microsoft.Office.Interop.Excel.Workbook wkb = app.Workbooks.Open(dosyaPathExcel, ReadOnly: true);
+            wkb.ExportAsFixedFormat(Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF, dosyapathPdf);
             wkb.Close();
             app.Quit();
+            var pdfByte = File.ReadAllBytes(pdfDosya + @"\" + randomSayi + ".pdf");
+            if (File.Exists(dosyaPathExcel))
+            {
+                try
+                {
+                    File.Delete(dosyaPathExcel);
+                }
+                catch (Exception)
+                {
+
+                    throw;
+                }
+            }
+            if (File.Exists(dosyapathPdf))
+            {
+                try
+                {
+                    File.Delete(dosyapathPdf);
+                }
+                catch (Exception)
+                {
+
+                    throw;
+                }
+            }
+            return pdfByte;
 
         }
     }
