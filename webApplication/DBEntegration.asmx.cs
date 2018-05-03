@@ -13,6 +13,7 @@ using System.Runtime.InteropServices;
 using System.Web;
 using System.Web.Services;
 using Microsoft.Office.Interop.Excel;
+using Microsoft.Office.Interop.Word;
 
 namespace webApplication
 {
@@ -68,44 +69,58 @@ namespace webApplication
 
         }
         [WebMethod]
-        public byte[] ConvertToPDF(byte[] excel)
+        public byte[] ConvertToPDF(byte[] data, string extention)
         {
-            var excelDosya = @"C:\Excel";
+            var dataDosya = @"C:\Document";
             var pdfDosya = @"C:\PDF";
             Random rnd = new Random();
             int randomSayi = rnd.Next(111111);
-            string dosyaPathExcel = excelDosya + @"\" + randomSayi + ".xlsx";
+            string dosyaPathdata = dataDosya + @"\" + randomSayi + "."+extention;
             string dosyapathPdf = pdfDosya + @"\" + randomSayi + ".pdf";
-            File.WriteAllBytes(dosyaPathExcel, excel);
-            Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
-            app.Visible = false;
-            Microsoft.Office.Interop.Excel.Workbook wkb = app.Workbooks.Open(dosyaPathExcel, ReadOnly: true);
-            wkb.ExportAsFixedFormat(Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF, dosyapathPdf);
-            wkb.Close();
-            app.Quit();
+            File.WriteAllBytes(dosyaPathdata, data);
+            if (extention == "xlsx")
+            {
+                Microsoft.Office.Interop.Excel.Application app = new Microsoft.Office.Interop.Excel.Application();
+                app.Visible = false;
+                Microsoft.Office.Interop.Excel.Workbook wkb = app.Workbooks.Open(dosyaPathdata, ReadOnly: true);
+                wkb.ExportAsFixedFormat(Microsoft.Office.Interop.Excel.XlFixedFormatType.xlTypePDF, dosyapathPdf);
+                wkb.Close();
+                app.Quit();
+            }
+            else if (extention == "doc" || extention == "docx")
+            {
+                Microsoft.Office.Interop.Word.Application wApp = new Microsoft.Office.Interop.Word.Application();
+                Microsoft.Office.Interop.Word.Document wordDoc = null;
+                object inputFileTemp = dosyaPathdata;
+                wordDoc = wApp.Documents.Open(dosyaPathdata);
+                wordDoc.ExportAsFixedFormat(dosyapathPdf, WdExportFormat.wdExportFormatPDF);
+                wordDoc.Close();
+                wApp.Quit();
+            }
+            
             var pdfByte = File.ReadAllBytes(pdfDosya + @"\" + randomSayi + ".pdf");
-            if (File.Exists(dosyaPathExcel))
+            if (File.Exists(dosyaPathdata))
             {
                 try
                 {
-                    File.Delete(dosyaPathExcel);
+                    File.Delete(dosyaPathdata);
                 }
                 catch (Exception)
                 {
                     throw;
                 }
             }
-            if (File.Exists(dosyapathPdf))
-            {
-                try
-                {
-                    File.Delete(dosyapathPdf);
-                }
-                catch (Exception)
-                {
-                    throw;
-                }
-            }
+            //if (File.Exists(dosyapathPdf))
+            //{
+            //    try
+            //    {
+            //        File.Delete(dosyapathPdf);
+            //    }
+            //    catch (Exception)
+            //    {
+            //        throw;
+            //    }
+            //}
             return pdfByte;
 
         }
