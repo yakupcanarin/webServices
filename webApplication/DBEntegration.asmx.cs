@@ -7,6 +7,7 @@ using System.Data;
 using System.Data.SqlClient;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Web;
@@ -27,122 +28,45 @@ namespace webApplication
     {
         static string connString = ConfigurationManager.ConnectionStrings["DB"].ConnectionString;
         SqlConnection sqlConn = new SqlConnection(connString);
-        [WebMethod]
-        public List<Users> GetAllUsers()
-        {
-
-            Users user = new Users();
-
-            string CommandText = "SELECT * FROM Users ";
-            SqlCommand cmd = new SqlCommand(CommandText, sqlConn);
-            sqlConn.Open();
-            SqlDataReader dr = cmd.ExecuteReader();
-            List<Users> list = new List<Users>();
-
-            if (dr != null)
-            {
-                while (dr.Read())
-                {
-                    user = new Users();
-                    user.ID = Convert.ToInt32(dr["ID"]);
-                    user.Name_Surname = dr["Name_Surname"].ToString();
-                    user.Email = dr["Email"].ToString();
-                    list.Add(user);
-                }
-            }
-
-            dr.Close();
-            sqlConn.Close();
-            return list;
-
-        }
-
 
         [WebMethod]
-
-        public void AddUser(string nameSurname, string email, string password)
+        public byte[] CreateArchiveFile(byte[] file, string docType)
         {
-            Users user = new Users();
+            Random rnd = new Random();
+            int number = rnd.Next(111111);
+            string path = @"C:\Zip\"+number+"."+docType;
+            string zippedPath = @"C:\Zip\Zipped\" + number + ".zip";
+            File.WriteAllBytes(path, file);
 
 
-            string Query = "SELECT * FROM Users";
-            System.Data.DataTable dataTable = new System.Data.DataTable();
-            SqlDataAdapter da = new SqlDataAdapter(Query, sqlConn);
-            da.Fill(dataTable);
+            byte[] read = new byte[4096];
+            int readByte = 0;
+            MemoryStream _mStream = new MemoryStream(); // create a empty memory
+            ZipArchive archive = new ZipArchive(_mStream, ZipArchiveMode.Create, true); // create zip archive into the memory
+            ZipArchiveEntry fileArchive = archive.CreateEntry(path); // show the document to archive which is in memory
+            var OpenFileinArchive = fileArchive.Open(); //create document in memory archive
+            FileStream _fsReader = new FileStream(path, FileMode.Open, FileAccess.Read); //get file set permissions.
 
-            int k = 0;
-            for (int i = 0; i < 1; i++)
+            while (_fsReader.Position != _fsReader.Length)
             {
-                for (int j = 0; j < dataTable.Rows.Count; j++)
-                {
+                readByte = _fsReader.Read(read, 0, read.Length);  // read file
+                OpenFileinArchive.Write(read, 0, readByte);  // write to memory
+            }
 
-                    if (email == dataTable.Rows[j]["Email"].ToString())
-                    {
-                        k--;
-                    }
-                    else
-                    {
-                        k++;
-                    }
-                }
-            }
-            if (k < dataTable.Rows.Count)
-            {
-                Console.WriteLine("This EMAIL Address already exist.");
-            }
-            else
-            {
-                string CommandText = @"INSERT INTO Users (Name_Surname, Email, Password) VALUES (@nameSurname,@email,@password )";
-                SqlConnection conn = new SqlConnection(connString);
-                SqlCommand command = new SqlCommand(CommandText);
-                command.Parameters.AddWithValue("@nameSurname", nameSurname);
-                command.Parameters.AddWithValue("@email", email);
-                command.Parameters.AddWithValue("@password", password);
-                command.Connection = conn;
-                conn.Open();
-                command.ExecuteNonQuery();
-                conn.Close();
+            _fsReader.Dispose();
+            OpenFileinArchive.Close();
+            archive.Dispose();
 
+            using (var _fs = new FileStream(zippedPath, FileMode.Create))
+            {
+                _mStream.Seek(0, SeekOrigin.Begin);
+                _mStream.CopyTo(_fs);
             }
-            sqlConn.Close();
+
+            return File.ReadAllBytes(zippedPath);
+
 
         }
-
-
-        [WebMethod]
-        public void UpdateNameOrPassword(string email, string name, string password)
-        {
-            string update1 = @"UPDATE Users SET Password='" + @password + "',Name_Surname='" + @name + "' WHERE Email='" + @email + "'";
-            string update2 = @"UPDATE Users SET Password='" + @password + "' WHERE Email='" + @email + "'";
-            string update3 = @"UPDATE Users SET Name_Surname='" + @name + "' WHERE Email='" + @email + "'";
-            if (name == null || name == "")
-            {
-                sqlConn.Open();
-                SqlCommand cmd = new SqlCommand(update2, sqlConn);
-                cmd.Parameters.AddWithValue("@password", password);
-                cmd.ExecuteNonQuery();
-                sqlConn.Close();
-            }
-            else if (password == null || password == "")
-            {
-                sqlConn.Open();
-                SqlCommand cmd = new SqlCommand(update3, sqlConn);
-                cmd.Parameters.AddWithValue("@name", name);
-                cmd.ExecuteNonQuery();
-                sqlConn.Close();
-            }
-            else if ((email != null || email != "") && (password != null || password != ""))
-            {
-                sqlConn.Open();
-                SqlCommand cmd = new SqlCommand(update1, sqlConn);
-                cmd.Parameters.AddWithValue("@password", password);
-                cmd.Parameters.AddWithValue("@name", name);
-                cmd.ExecuteNonQuery();
-                sqlConn.Close();
-            }
-
-        }
-
         [WebMethod]
         public byte[] ConvertToPDF(byte[] excel)
         {
@@ -168,7 +92,6 @@ namespace webApplication
                 }
                 catch (Exception)
                 {
-
                     throw;
                 }
             }
@@ -180,7 +103,6 @@ namespace webApplication
                 }
                 catch (Exception)
                 {
-
                     throw;
                 }
             }
